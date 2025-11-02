@@ -1,0 +1,5 @@
+class,train,val,test
+glioma,6,2,2
+meningioma,6,2,2
+pituitary,7,1,2
+notumor,6,2,2

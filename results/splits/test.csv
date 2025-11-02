@@ -1,0 +1,9 @@
+path,label,class
+data/images/notumor/Tr-no_0017.jpg,3,notumor
+data/images/notumor/Tr-no_0013.jpg,3,notumor
+data/images/meningioma/Tr-me_0011.jpg,1,meningioma
+data/images/glioma/Tr-gl_0014.jpg,0,glioma
+data/images/meningioma/Tr-me_0016.jpg,1,meningioma
+data/images/pituitary/Tr-pi_0018.jpg,2,pituitary
+data/images/pituitary/Tr-pi_0013.jpg,2,pituitary
+data/images/glioma/Tr-gl_0013.jpg,0,glioma
