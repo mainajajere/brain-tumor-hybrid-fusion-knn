@@ -1,0 +1,6 @@
+data:
+  image_size: 224
+  classes: ["glioma", "meningioma", "pituitary", "notumor"]
+
+output:
+  dir: results
