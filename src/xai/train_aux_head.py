@@ -26,17 +26,13 @@ def load_ds(df, batch=16, shuffle=False):
         ds = ds.shuffle(1024, reshuffle_each_iteration=True)
     return ds.batch(batch).prefetch(tf.data.AUTOTUNE)
 
-# Build dual-backbone
 inputs = layers.Input(shape=(image_size, image_size, 3))
 mb_in = tf.keras.applications.mobilenet_v2.preprocess_input(inputs)
 ef_in = tf.keras.applications.efficientnet_v2.preprocess_input(inputs)
 
-mb = tf.keras.applications.MobileNetV2(include_top=False, weights="imagenet",
-                                       input_shape=(image_size, image_size, 3))
-ef = tf.keras.applications.EfficientNetV2B0(include_top=False, weights="imagenet",
-                                            input_shape=(image_size, image_size, 3))
-mb.trainable = False
-ef.trainable = False
+mb = tf.keras.applications.MobileNetV2(include_top=False, weights="imagenet", input_shape=(image_size, image_size, 3))
+ef = tf.keras.applications.EfficientNetV2B0(include_top=False, weights="imagenet", input_shape=(image_size, image_size, 3))
+mb.trainable = False; ef.trainable = False
 
 mb_conv = mb(mb_in, training=False)
 ef_conv = ef(ef_in, training=False)
@@ -49,19 +45,16 @@ logits = layers.Dense(n_classes, activation="softmax", name="aux_softmax")(fused
 logits_model = models.Model(inputs=inputs, outputs=logits, name="aux_logits")
 cam_model = models.Model(inputs=inputs, outputs=[logits, mb_conv, ef_conv], name="aux_cam")
 
-# Data
 train_df = load_df(os.path.join(cfg["output"]["dir"], "splits", "train.csv"))
 val_df = load_df(os.path.join(cfg["output"]["dir"], "splits", "val.csv"))
 ds_tr = load_ds(train_df, batch=16, shuffle=True)
 ds_va = load_ds(val_df, batch=16, shuffle=False)
 
-# Train
-opt = optimizers.Adam(learning_rate=1e-3)
+opt = optim  optimizers.Adam(learning_rate=1e-3)
 logits_model.compile(optimizer=opt, loss="sparse_categorical_crossentropy", metrics=["accuracy"])
 es = callbacks.EarlyStopping(monitor="val_accuracy", patience=5, restore_best_weights=True)
 logits_model.fit(ds_tr, validation_data=ds_va, epochs=30, callbacks=[es], verbose=1)
 
-# Save
 out_dir = os.path.join(cfg["output"]["dir"], "models")
 os.makedirs(out_dir, exist_ok=True)
 logits_model.save(os.path.join(out_dir, "aux_logits"))

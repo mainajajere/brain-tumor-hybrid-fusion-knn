@@ -21,7 +21,6 @@ for ci, cname in enumerate(classes):
     sample = tr[tr["label"]==ci].head(5)
     for _, r in sample.iterrows():
         bg.append(load_img(r["path"]))
-if not bg: raise SystemExit("No background images found.")
 bg = tf.stack(bg, axis=0)
 
 explainer = shap.GradientExplainer(model, bg)
@@ -38,4 +37,4 @@ for ci, cname in enumerate(classes):
     shap.image_plot(sv_list, xs.numpy(), show=False)
     plt.savefig(os.path.join(outdir, f"summary_{cname}.png"), dpi=200, bbox_inches="tight")
     plt.close()
-print("Saved SHAP images to", outdir)
+print("Saved SHAP to", outdir)

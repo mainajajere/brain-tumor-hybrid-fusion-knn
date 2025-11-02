@@ -45,7 +45,7 @@ for ci, cname in enumerate(classes):
         logits, _, _ = model(tf.expand_dims(img_t,0), training=False)
         pred = int(tf.argmax(logits[0]).numpy())
         cam = gradcam_for_class(img_t, pred)
-        over = overlay(raw, cam, alpha=0.35)
+        over = overlay(raw, cam)
         fn = f"{cname}_pred{classes[pred]}_{os.path.basename(row['path'])}.png"
         cv2.imwrite(os.path.join(outdir, fn), cv2.cvtColor(over, cv2.COLOR_RGB2BGR))
-print("Saved Grad-CAM overlays to", outdir)
+print("Saved Grad-CAM to", outdir)
