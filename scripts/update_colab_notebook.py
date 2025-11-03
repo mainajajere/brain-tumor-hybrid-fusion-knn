@@ -6,19 +6,19 @@ cells.append(nbf.v4.new_markdown_cell("""# Brain Tumor MRI Classification: Valid
 
 This Colab runs the released pipeline end-to-end using the embedded demo dataset (10 images per class) stored in this repo under `data/images`.
 
-Pipeline:
+**Pipeline:**
 - Create stratified 64/16/20 splits
 - Extract features (MobileNetV2 + EfficientNetV2B0, GAP+concat)
 - Train KNN (k=5, Euclidean, distance weights)
-- Evaluate (confusion, class metrics)
-- Optional: Grad-CAM + SHAP explanations
+- Evaluate (confusion matrix, class metrics)
+- Display results
 
-No Google Drive or Kaggle required by default.
+**No Google Drive or Kaggle required by default.**
 """))
 
 cells.append(nbf.v4.new_code_cell("""!nvidia-smi -L || true
 %cd /content
-!git clone https://github.com/mainajajere/brain-tumor-hybrid-fusion-knn.git
+!git clone -q https://github.com/mainajajere/brain-tumor-hybrid-fusion-knn.git
 %cd /content/brain-tumor-hybrid-fusion-knn
 !pip install -q -r requirements.txt
 
@@ -27,7 +27,7 @@ REPO = pathlib.Path('/content/brain-tumor-hybrid-fusion-knn')
 os.makedirs(REPO/'outputs', exist_ok=True)
 os.makedirs(REPO/'results', exist_ok=True)
 sys.path.append(str(REPO))
-print('Repo ready at', REPO)
+print('✅ Repo ready at', REPO)
 """))
 
 cells.append(nbf.v4.new_code_cell("""# Use the embedded demo dataset under data/images (lowercase class names)
@@ -41,10 +41,13 @@ def have_dataset(root, classes):
 print('Dataset root:', DATA_ROOT)
 for c in CLASSES:
     p = os.path.join(DATA_ROOT, c)
-    print(c, 'OK' if os.path.isdir(p) else 'MISSING', p)
+    n = len(os.listdir(p)) if os.path.isdir(p) else 0
+    print(f'✅ {c}: {n} images' if n > 0 else f'❌ {c}: MISSING')
 
 if not have_dataset(DATA_ROOT, CLASSES):
-    raise SystemExit('Embedded demo dataset not found. Expected data/images/<class> folders.')
+    raise SystemExit('❌ Embedded demo dataset not found. Expected data/images/<class> folders.')
+else:
+    print('✅ Dataset verified successfully')
 """))
 
 cells.append(nbf.v4.new_code_cell("""# Write config (64/16/20 split; KNN k=5 Euclidean distance weighting)
@@ -66,25 +69,51 @@ cfg = {
 os.makedirs('configs', exist_ok=True)
 with open('configs/config.yaml','w') as f:
     yaml.safe_dump(cfg, f, sort_keys=False)
-!sed -n '1,160p' configs/config.yaml
+print('✅ Config written: configs/config.yaml')
+!head -20 configs/config.yaml
 """))
 
-cells.append(nbf.v4.new_code_cell("""# Run the pipeline
+cells.append(nbf.v4.new_code_cell("""# First, check the data splits
+print("=== Checking data splits ===")
+!python scripts/check_split_counts.py --config configs/config.yaml
+"""))
+
+cells.append(nbf.v4.new_code_cell("""# Run the complete pipeline
+print("=== Running full pipeline ===")
 !python scripts/run_full_pipeline.py --config configs/config.yaml
 """))
 
 cells.append(nbf.v4.new_code_cell("""# Show key outputs
 from IPython.display import Image, display
-for p in ['outputs/figures/confusion_matrix.png',
-          'outputs/figures/class_metrics.png',
-          'outputs/results/summary.txt']:
-    print('\\n', p)
-    if p.endswith('.png') and os.path.exists(p): display(Image(filename=p))
-    elif os.path.exists(p): print(open(p).read())
-    else: print('MISSING')
+import os
+
+print("=== Pipeline Outputs ===")
+outputs_to_check = [
+    'outputs/figures/confusion_matrix.png',
+    'outputs/figures/class_metrics.png',
+    'outputs/results/summary.txt'
+]
+
+for p in outputs_to_check:
+    print(f'\\n📁 {p}')
+    if p.endswith('.png') and os.path.exists(p):
+        display(Image(filename=p))
+        print('✅ Displayed')
+    elif os.path.exists(p):
+        print('📊 Content:')
+        print(open(p).read())
+    else:
+        print('❌ MISSING - Pipeline may have failed')
+
+# Check if outputs directory was created
+if os.path.exists('outputs'):
+    print(f'\\n✅ Outputs directory created with:')
+    !find outputs -type f | head -10
+else:
+    print('❌ No outputs directory created')
 """))
 
 nb['cells'] = cells
 with open('notebooks/BrainTumor_FusionKNN_Validation.ipynb', 'w') as f:
     nbf.write(nb, f)
-print('Notebook overwritten with self-contained demo run.')
+print('✅ Notebook updated with correct pipeline flow')
