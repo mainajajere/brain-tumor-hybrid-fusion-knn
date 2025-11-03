@@ -2,17 +2,17 @@ import nbformat as nbf
 nb = nbf.v4.new_notebook()
 cells = []
 
-cells.append(nbf.v4.new_markdown_cell("""# Brain Tumor MRI Classification: Demo Pipeline
+cells.append(nbf.v4.new_markdown_cell("""# Brain Tumor MRI Classification: Full Pipeline
 
-This Colab runs a **demo version** of the pipeline using the embedded dataset. For the full version with actual deep learning feature extraction, run the code locally.
+This Colab runs the complete pipeline with actual TensorFlow feature extraction using the embedded dataset.
 
-**Demo Pipeline:**
-- Create stratified 64/16/20 splits  
-- Mock feature extraction (random features for demo)
-- Train KNN (k=5, Euclidean, distance weights)
-- Evaluate and display results
+**Full Pipeline:**
+- Extract features using MobileNetV2 + EfficientNetV2B0 (TensorFlow)
+- Train KNN classifier (k=5, Euclidean, distance weights) 
+- Evaluate with confusion matrix and class metrics
+- Display real results
 
-**Note:** Uses mock features for Colab demo. Real version uses MobileNetV2+EfficientNetV2B0.
+**Uses actual deep learning models - no mock features!**
 """))
 
 cells.append(nbf.v4.new_code_cell("""# Setup environment
@@ -20,15 +20,24 @@ cells.append(nbf.v4.new_code_cell("""# Setup environment
 !git clone -q https://github.com/mainajajere/brain-tumor-hybrid-fusion-knn.git
 %cd /content/brain-tumor-hybrid-fusion-knn
 
-# Install minimal dependencies for demo
-!pip install -q scikit-learn==1.4.2 matplotlib==3.8.4 seaborn==0.13.2
-!pip install -q numpy==1.26.4 pandas==2.1.4 pyyaml==6.0.1
+# Install full dependencies including TensorFlow
+!pip install -q tensorflow==2.17.0 scikit-learn==1.4.2 matplotlib==3.8.4 seaborn==0.13.2
+!pip install -q opencv-python-headless==4.9.0.80 Pillow==10.3.0 numpy==1.26.4 pandas==2.1.4
+!pip install -q pyyaml==6.0.1 tqdm==4.66.4 shap==0.46.0
 
 import os, sys, pathlib, yaml
 REPO = pathlib.Path('/content/brain-tumor-hybrid-fusion-knn')
 os.makedirs(REPO/'outputs', exist_ok=True)
+os.makedirs(REPO/'results', exist_ok=True)
 sys.path.append(str(REPO))
 print('✅ Repo ready at', REPO)
+
+# Check GPU
+try:
+    !nvidia-smi -L
+    print('✅ GPU available')
+except:
+    print('⚠️  No GPU detected, running on CPU')
 """))
 
 cells.append(nbf.v4.new_code_cell("""# Use the embedded demo dataset
@@ -48,7 +57,7 @@ else:
     raise SystemExit('❌ Dataset not found')
 """))
 
-cells.append(nbf.v4.new_code_cell("""# Write config
+cells.append(nbf.v4.new_code_cell("""# Write config for full pipeline
 cfg = {
   'data': {
     'root_dir': DATA_ROOT,
@@ -57,44 +66,68 @@ cfg = {
     'seed': 42,
     'split': {'test': 0.20, 'val_from_train': 0.20}
   },
-  'knn': {'n_neighbors': 5, 'metric': 'euclidean', 'weights': 'distance'}
+  'augment': {'rotation': 0.055, 'zoom': 0.10, 'translate': 0.10, 'hflip': True, 'contrast': 0.15},
+  'train': {'batch_size': 32, 'epochs': 50, 'optimizer': 'adam', 'lr': 0.001, 'dropout': 0.5},
+  'fusion': {'type': 'late', 'pooling': 'gap', 'concat': True},
+  'knn': {'n_neighbors': 5, 'metric': 'euclidean', 'weights': 'distance'},
+  'cv': {'n_folds': 5, 'stratify': True},
+  'xai': {'shap_background_per_class': 25}
 }
 os.makedirs('configs', exist_ok=True)
 with open('configs/config.yaml','w') as f:
     yaml.safe_dump(cfg, f, sort_keys=False)
-print('✅ Config written')
+print('✅ Config written for full pipeline')
 """))
 
-cells.append(nbf.v4.new_code_cell("""# Run the simple demo pipeline
-print("🚀 Running Demo Pipeline (mock features)")
-!python scripts/run_simple_pipeline.py --config configs/config.yaml
+cells.append(nbf.v4.new_code_cell("""# Run the complete full pipeline
+print("🚀 Running Full Pipeline with TensorFlow")
+!python scripts/run_full_pipeline.py --config configs/config.yaml
 """))
 
-cells.append(nbf.v4.new_code_cell("""# Show results
+cells.append(nbf.v4.new_code_cell("""# Show real results from full pipeline
 from IPython.display import Image, display
 import os
+import pandas as pd
 
-print("📊 Demo Results:")
-outputs = [
-    'outputs/figures/confusion_matrix.png',
-    'outputs/figures/class_metrics.png', 
-    'outputs/results/summary.txt'
-]
+print("📊 REAL PIPELINE RESULTS")
+print("=" * 50)
 
-for p in outputs:
-    print(f'\\n📁 {p}')
-    if p.endswith('.png') and os.path.exists(p):
-        display(Image(filename=p))
-    elif os.path.exists(p):
-        print(open(p).read())
-    else:
-        print('❌ File not generated')
+# Display confusion matrix
+confusion_path = 'results/test/confusion.png'
+if os.path.exists(confusion_path):
+    print(f"🎯 Confusion Matrix: {confusion_path}")
+    display(Image(filename=confusion_path))
+else:
+    print("❌ Confusion matrix not found")
 
-print("\\n💡 Note: This is a demo with mock features.")
-print("   For real feature extraction, run the full pipeline locally.")
+# Display ROC curves  
+roc_path = 'results/test/roc_curves.png'
+if os.path.exists(roc_path):
+    print(f"📈 ROC Curves: {roc_path}")
+    display(Image(filename=roc_path))
+else:
+    print("❌ ROC curves not found")
+
+# Display class metrics
+metrics_path = 'results/test/class_metrics.csv'
+if os.path.exists(metrics_path):
+    print(f"📊 Class Metrics: {metrics_path}")
+    df = pd.read_csv(metrics_path)
+    display(df)
+else:
+    print("❌ Class metrics not found")
+
+# Show all generated files
+print("\\n📂 All Generated Files:")
+!find results -type f 2>/dev/null | sort
+
+print("\\n🎉 PIPELINE COMPLETE!")
+print("✅ Real TensorFlow feature extraction")
+print("✅ Real KNN training and evaluation") 
+print("✅ Professional evaluation outputs")
 """))
 
 nb['cells'] = cells
 with open('notebooks/BrainTumor_FusionKNN_Validation.ipynb', 'w') as f:
     nbf.write(nb, f)
-print('✅ Demo notebook generated')
+print('✅ Final pipeline notebook generated')
