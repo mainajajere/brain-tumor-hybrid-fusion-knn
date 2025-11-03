@@ -15,10 +15,11 @@ This Colab runs the complete pipeline with actual TensorFlow feature extraction 
 **Uses actual deep learning models - no mock features!**
 """))
 
-cells.append(nbf.v4.new_code_cell("""# Setup environment - force clean start
+cells.append(nbf.v4.new_code_cell("""# Setup environment - use pre-installed packages to avoid compatibility issues
 import os
 import shutil
 
+# Clean start
 if os.path.exists('/content/brain-tumor-hybrid-fusion-knn'):
     print('📁 Removing existing directory...')
     shutil.rmtree('/content/brain-tumor-hybrid-fusion-knn')
@@ -27,19 +28,50 @@ if os.path.exists('/content/brain-tumor-hybrid-fusion-knn'):
 !git clone -q https://github.com/mainajajere/brain-tumor-hybrid-fusion-knn.git
 %cd /content/brain-tumor-hybrid-fusion-knn
 
-# Check which branch we're on
-!git branch
+print('✅ Repository cloned')
 
-# Install dependencies
-!pip install -q tensorflow==2.17.0 scikit-learn==1.4.2 matplotlib==3.8.4 seaborn==0.13.2
-!pip install -q opencv-python-headless==4.9.0.80 Pillow==10.3.0 
-!pip install -q "numpy<1.25" pandas==2.1.4 pyyaml==6.0.1 tqdm==4.66.4
+# Use Colab's pre-installed packages to avoid compatibility issues
+# Just install missing ones that we know work
+!pip install -q pyyaml==6.0.1 tqdm==4.66.4 opencv-python-headless==4.9.0.80
 
-print('✅ Environment setup complete')
+print('✅ Minimal dependencies installed')
 
-# Verify we can import TensorFlow
-import tensorflow as tf
-print(f'✅ TensorFlow {tf.__version__} loaded')
+# Force restart to use pre-installed packages
+print('🔄 Restarting runtime to use pre-installed packages...')
+import IPython
+IPython.Application.instance().kernel.do_shutdown(True)
+"""))
+
+cells.append(nbf.v4.new_code_cell("""# After restart - use pre-installed packages
+import os
+print('✅ Runtime restarted - using pre-installed packages')
+
+# Verify we can import everything
+try:
+    import tensorflow as tf
+    print(f'✅ TensorFlow {tf.__version__} loaded')
+except ImportError as e:
+    print(f'❌ TensorFlow import failed: {e}')
+
+try:
+    import numpy as np
+    print(f'✅ NumPy {np.__version__} loaded')
+except ImportError as e:
+    print(f'❌ NumPy import failed: {e}')
+
+try:
+    import sklearn
+    print(f'✅ scikit-learn {sklearn.__version__} loaded')
+except ImportError as e:
+    print(f'❌ scikit-learn import failed: {e}')
+
+try:
+    import matplotlib
+    print(f'✅ matplotlib {matplotlib.__version__} loaded')
+except ImportError as e:
+    print(f'❌ matplotlib import failed: {e}')
+
+print('✅ Environment verification complete')
 """))
 
 cells.append(nbf.v4.new_code_cell("""# Use the embedded demo dataset
@@ -81,21 +113,11 @@ with open('configs/config.yaml','w') as f:
 print('✅ Config written for full pipeline')
 """))
 
-cells.append(nbf.v4.new_code_cell("""# OPTION 1: Try the fixed pipeline runner first
-print("🚀 OPTION 1: Running with fixed pipeline runner...")
-try:
-    !python scripts/run_full_pipeline_fixed.py --config configs/config.yaml
-    print("✅ Option 1 succeeded!")
-except Exception as e:
-    print(f"❌ Option 1 failed: {e}")
-    print("🔄 Trying Option 2...")
-"""))
-
-cells.append(nbf.v4.new_code_cell("""# OPTION 2: Direct script calls (fallback)
+cells.append(nbf.v4.new_code_cell("""# Run pipeline using direct script calls with pre-installed packages
 import subprocess
 import sys
 
-print("🚀 OPTION 2: Running scripts directly...")
+print("�� Running Pipeline with Pre-installed Packages")
 
 scripts = [
     ("src/pipeline/extract_features.py", "Extracting features"),
@@ -104,7 +126,7 @@ scripts = [
 ]
 
 for script, description in scripts:
-    print(f"🔧 {description}...")
+    print(f"\\n🔧 {description}...")
     try:
         result = subprocess.run([
             sys.executable, script, "--config", "configs/config.yaml"
@@ -115,45 +137,70 @@ for script, description in scripts:
             if result.stdout.strip():
                 print(f"   Output: {result.stdout.strip()}")
         else:
-            print(f"❌ {description} failed")
-            print(f"   Error: {result.stderr.strip()}")
+            print(f"❌ {description} failed with exit code {result.returncode}")
+            if result.stderr.strip():
+                print(f"   Error: {result.stderr.strip()}")
     except Exception as e:
         print(f"❌ {description} exception: {e}")
+
+print("\\n🎉 Pipeline execution attempted!")
 """))
 
-cells.append(nbf.v4.new_code_cell("""# Show results
+cells.append(nbf.v4.new_code_cell("""# Show any results that were generated
 from IPython.display import Image, display
 import os
+import glob
 
-print("📊 PIPELINE RESULTS")
+print("📊 CHECKING FOR RESULTS")
 print("=" * 50)
 
 results_dir = "/content/brain-tumor-hybrid-fusion-knn/results"
 
-# Display any result images
-for root, dirs, files in os.walk(results_dir):
-    for file in files:
-        if file.endswith('.png'):
-            img_path = os.path.join(root, file)
-            print(f"🖼️  {file}:")
-            display(Image(filename=img_path))
+if os.path.exists(results_dir):
+    print(f"✅ Results directory exists: {results_dir}")
+    
+    # Find all result files
+    png_files = glob.glob(f"{results_dir}/**/*.png", recursive=True)
+    csv_files = glob.glob(f"{results_dir}/**/*.csv", recursive=True)
+    txt_files = glob.glob(f"{results_dir}/**/*.txt", recursive=True)
+    
+    # Display images
+    if png_files:
+        print("\\n🖼️  Result Images:")
+        for img_file in png_files:
+            print(f"   - {os.path.basename(img_file)}")
+            display(Image(filename=img_file))
+    else:
+        print("\\n❌ No PNG result images found")
+    
+    # Display text files
+    all_text_files = csv_files + txt_files
+    if all_text_files:
+        print("\\n📄 Text Results:")
+        for text_file in all_text_files:
+            print(f"\\n--- {os.path.basename(text_file)} ---")
+            try:
+                with open(text_file, 'r') as f:
+                    print(f.read())
+            except Exception as e:
+                print(f"   Error reading file: {e}")
+    else:
+        print("\\n❌ No text result files found")
+        
+    # Show directory structure
+    print("\\n📂 Results directory structure:")
+    !find /content/brain-tumor-hybrid-fusion-knn/results -type f 2>/dev/null | sort
+    
+else:
+    print(f"❌ Results directory not found: {results_dir}")
+    print("\\n📁 Checking what WAS created:")
+    !find /content/brain-tumor-hybrid-fusion-knn -name "*.png" -o -name "*.csv" -o -name "*.txt" 2>/dev/null | head -20
 
-# Display any text results
-for root, dirs, files in os.walk(results_dir):
-    for file in files:
-        if file.endswith(('.txt', '.csv')):
-            text_path = os.path.join(root, file)
-            print(f"📄 {file}:")
-            with open(text_path, 'r') as f:
-                print(f.read())
-
-print("\\n📂 All generated files:")
-!find /content/brain-tumor-hybrid-fusion-knn/results -type f 2>/dev/null | sort
-
-print("\\n🎉 EXECUTION COMPLETE!")
+print("\\n" + "=" * 50)
+print("🎯 PIPELINE EXECUTION COMPLETE")
 """))
 
 nb['cells'] = cells
 with open('notebooks/BrainTumor_FusionKNN_Validation.ipynb', 'w') as f:
     nbf.write(nb, f)
-print('✅ Final robust notebook generated')
+print('✅ Compatibility-fixed notebook generated')
