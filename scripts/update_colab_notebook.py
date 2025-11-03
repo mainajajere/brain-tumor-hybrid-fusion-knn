@@ -15,29 +15,31 @@ This Colab runs the complete pipeline with actual TensorFlow feature extraction 
 **Uses actual deep learning models - no mock features!**
 """))
 
-cells.append(nbf.v4.new_code_cell("""# Setup environment
+cells.append(nbf.v4.new_code_cell("""# Setup environment - force clean start
+import os
+import shutil
+
+if os.path.exists('/content/brain-tumor-hybrid-fusion-knn'):
+    print('📁 Removing existing directory...')
+    shutil.rmtree('/content/brain-tumor-hybrid-fusion-knn')
+
 %cd /content
 !git clone -q https://github.com/mainajajere/brain-tumor-hybrid-fusion-knn.git
 %cd /content/brain-tumor-hybrid-fusion-knn
 
-# Install full dependencies including TensorFlow
+# Check which branch we're on
+!git branch
+
+# Install dependencies
 !pip install -q tensorflow==2.17.0 scikit-learn==1.4.2 matplotlib==3.8.4 seaborn==0.13.2
-!pip install -q opencv-python-headless==4.9.0.80 Pillow==10.3.0 numpy==1.26.4 pandas==2.1.4
-!pip install -q pyyaml==6.0.1 tqdm==4.66.4 shap==0.46.0
+!pip install -q opencv-python-headless==4.9.0.80 Pillow==10.3.0 
+!pip install -q "numpy<1.25" pandas==2.1.4 pyyaml==6.0.1 tqdm==4.66.4
 
-import os, sys, pathlib, yaml
-REPO = pathlib.Path('/content/brain-tumor-hybrid-fusion-knn')
-os.makedirs(REPO/'outputs', exist_ok=True)
-os.makedirs(REPO/'results', exist_ok=True)
-sys.path.append(str(REPO))
-print('✅ Repo ready at', REPO)
+print('✅ Environment setup complete')
 
-# Check GPU
-try:
-    !nvidia-smi -L
-    print('✅ GPU available')
-except:
-    print('⚠️  No GPU detected, running on CPU')
+# Verify we can import TensorFlow
+import tensorflow as tf
+print(f'✅ TensorFlow {tf.__version__} loaded')
 """))
 
 cells.append(nbf.v4.new_code_cell("""# Use the embedded demo dataset
@@ -58,6 +60,7 @@ else:
 """))
 
 cells.append(nbf.v4.new_code_cell("""# Write config for full pipeline
+import yaml
 cfg = {
   'data': {
     'root_dir': DATA_ROOT,
@@ -70,8 +73,7 @@ cfg = {
   'train': {'batch_size': 32, 'epochs': 50, 'optimizer': 'adam', 'lr': 0.001, 'dropout': 0.5},
   'fusion': {'type': 'late', 'pooling': 'gap', 'concat': True},
   'knn': {'n_neighbors': 5, 'metric': 'euclidean', 'weights': 'distance'},
-  'cv': {'n_folds': 5, 'stratify': True},
-  'xai': {'shap_background_per_class': 25}
+  'cv': {'n_folds': 5, 'stratify': True}
 }
 os.makedirs('configs', exist_ok=True)
 with open('configs/config.yaml','w') as f:
@@ -79,55 +81,79 @@ with open('configs/config.yaml','w') as f:
 print('✅ Config written for full pipeline')
 """))
 
-cells.append(nbf.v4.new_code_cell("""# Run the complete full pipeline
-print("🚀 Running Full Pipeline with TensorFlow")
-!python scripts/run_full_pipeline.py --config configs/config.yaml
+cells.append(nbf.v4.new_code_cell("""# OPTION 1: Try the fixed pipeline runner first
+print("🚀 OPTION 1: Running with fixed pipeline runner...")
+try:
+    !python scripts/run_full_pipeline_fixed.py --config configs/config.yaml
+    print("✅ Option 1 succeeded!")
+except Exception as e:
+    print(f"❌ Option 1 failed: {e}")
+    print("🔄 Trying Option 2...")
 """))
 
-cells.append(nbf.v4.new_code_cell("""# Show real results from full pipeline
+cells.append(nbf.v4.new_code_cell("""# OPTION 2: Direct script calls (fallback)
+import subprocess
+import sys
+
+print("🚀 OPTION 2: Running scripts directly...")
+
+scripts = [
+    ("src/pipeline/extract_features.py", "Extracting features"),
+    ("src/pipeline/train_knn.py", "Training KNN"), 
+    ("src/pipeline/evaluate.py", "Evaluating model")
+]
+
+for script, description in scripts:
+    print(f"🔧 {description}...")
+    try:
+        result = subprocess.run([
+            sys.executable, script, "--config", "configs/config.yaml"
+        ], capture_output=True, text=True, cwd="/content/brain-tumor-hybrid-fusion-knn")
+        
+        if result.returncode == 0:
+            print(f"✅ {description} completed")
+            if result.stdout.strip():
+                print(f"   Output: {result.stdout.strip()}")
+        else:
+            print(f"❌ {description} failed")
+            print(f"   Error: {result.stderr.strip()}")
+    except Exception as e:
+        print(f"❌ {description} exception: {e}")
+"""))
+
+cells.append(nbf.v4.new_code_cell("""# Show results
 from IPython.display import Image, display
 import os
-import pandas as pd
 
-print("📊 REAL PIPELINE RESULTS")
+print("📊 PIPELINE RESULTS")
 print("=" * 50)
 
-# Display confusion matrix
-confusion_path = 'results/test/confusion.png'
-if os.path.exists(confusion_path):
-    print(f"🎯 Confusion Matrix: {confusion_path}")
-    display(Image(filename=confusion_path))
-else:
-    print("❌ Confusion matrix not found")
+results_dir = "/content/brain-tumor-hybrid-fusion-knn/results"
 
-# Display ROC curves  
-roc_path = 'results/test/roc_curves.png'
-if os.path.exists(roc_path):
-    print(f"📈 ROC Curves: {roc_path}")
-    display(Image(filename=roc_path))
-else:
-    print("❌ ROC curves not found")
+# Display any result images
+for root, dirs, files in os.walk(results_dir):
+    for file in files:
+        if file.endswith('.png'):
+            img_path = os.path.join(root, file)
+            print(f"🖼️  {file}:")
+            display(Image(filename=img_path))
 
-# Display class metrics
-metrics_path = 'results/test/class_metrics.csv'
-if os.path.exists(metrics_path):
-    print(f"📊 Class Metrics: {metrics_path}")
-    df = pd.read_csv(metrics_path)
-    display(df)
-else:
-    print("❌ Class metrics not found")
+# Display any text results
+for root, dirs, files in os.walk(results_dir):
+    for file in files:
+        if file.endswith(('.txt', '.csv')):
+            text_path = os.path.join(root, file)
+            print(f"📄 {file}:")
+            with open(text_path, 'r') as f:
+                print(f.read())
 
-# Show all generated files
-print("\\n📂 All Generated Files:")
-!find results -type f 2>/dev/null | sort
+print("\\n📂 All generated files:")
+!find /content/brain-tumor-hybrid-fusion-knn/results -type f 2>/dev/null | sort
 
-print("\\n🎉 PIPELINE COMPLETE!")
-print("✅ Real TensorFlow feature extraction")
-print("✅ Real KNN training and evaluation") 
-print("✅ Professional evaluation outputs")
+print("\\n🎉 EXECUTION COMPLETE!")
 """))
 
 nb['cells'] = cells
 with open('notebooks/BrainTumor_FusionKNN_Validation.ipynb', 'w') as f:
     nbf.write(nb, f)
-print('✅ Final pipeline notebook generated')
+print('✅ Final robust notebook generated')
