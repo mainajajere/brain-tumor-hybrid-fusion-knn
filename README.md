@@ -18,7 +18,8 @@ A robust pipeline for MRI-based brain tumor classification using dual-backbone f
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mainajajere/brain-tumor-hybrid-fusion-knn/blob/main/notebooks/BrainTumor_FusionKNN_Validation.ipynb)
 
 1. **Click the Colab badge above**
-2. **Run all cells** - The notebook will:
+
+3. **Run all cells** - The notebook will:
    - Clone this repo in Colab
    - Use the embedded dataset at `data/images` (no Drive/Kaggle required)
    - Write `configs/config.yaml` with a 64/16/20 split
@@ -141,8 +142,8 @@ Optional XAI: Grad-CAM and SHAP figures produced by extra notebook cells (output
 
 Colab link error "malformed GitHub path": Ensure the link uses:
 
-
 https://colab.research.google.com/github/mainajajere/brain-tumor-hybrid-fusion-knn/blob/main/notebooks/BrainTumor_FusionKNN_Validation.ipynb
+
 Missing dataset folders: Embedded demo is in data/images. For custom datasets, set data.root_dir and ensure folder names match classes exactly (lowercase).
 
 No outputs: Ensure scripts/run_full_pipeline.py ran without errors; check configs/config.yaml paths.
