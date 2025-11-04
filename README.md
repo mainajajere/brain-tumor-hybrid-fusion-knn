@@ -1,4 +1,4 @@
-https://colab.research.google.com/assets/colab-badge.svg# brain-tumor-hybrid-fusion-knn
+# brain-tumor-hybrid-fusion-knn
 
 ## XAI: Grad-CAM & SHAP
 We provide interpretability:
@@ -12,4 +12,4 @@ See paper for discussion.
 
 **Local**: [notebooks/BrainTumor_FusionKNN_Validation.ipynb](notebooks/BrainTumor_FusionKNN_Validation.ipynb)
 
-**Colab**: [Open in Google Colab](https://colab.research.google.com/github/https://github.com/mainajajere/brain-tumor-hybrid-fusion-knn/blob/main/notebooks/BrainTumor_FusionKNN_Validation.ipynb)
+**Colab**: [Open in Google Colab](https://colab.research.google.com/github/mainajajere/brain-tumor-hybrid-fusion-knn/blob/main/notebooks/BrainTumor_FusionKNN_Validation.ipynb
