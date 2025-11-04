@@ -30,7 +30,9 @@ A robust pipeline for MRI-based brain tumor classification using dual-backbone f
 git clone https://github.com/mainajajere/brain-tumor-hybrid-fusion-knn
 cd brain-tumor-hybrid-fusion-knn
 pip install -r requirements.txt
+
 📊 Key Outputs
+
 Performance figures: outputs/figures/confusion_matrix.png, outputs/figures/class_metrics.png
 
 Summary: outputs/results/summary.txt
@@ -53,7 +55,9 @@ brain-tumor-hybrid-fusion-knn/
 │   ├── train/                   # Training utilities
 │   └── eval/                    # Evaluation metrics
 └── notebooks/BrainTumor_FusionKNN_Validation.ipynb
+
 ⚙️ Pipeline Flow
+
 Split: Stratified 64/16/20 (holdout test=20%; from remaining 80%, val=20% → final 64/16/20)
 
 Feature Extraction: MobileNetV2 + EfficientNetV2B0 (ImageNet pretrained), GAP each
@@ -67,6 +71,7 @@ Evaluation: Confusion matrix, class-wise precision/recall/F1, 5-fold CV with nor
 Optional XAI: Grad-CAM (class-wise overlays) and SHAP (summary + waterfall)
 
 🎯 Usage
+
 Run Full Pipeline
 
 python scripts/run_full_pipeline.py --config configs/config.yaml
@@ -125,6 +130,7 @@ xai:
   shap_background_per_class: 25
 
 🔍 Reproduce Figures
+
 Confusion matrix: outputs/figures/confusion_matrix.png
 
 Class metrics: outputs/figures/class_metrics.png
@@ -132,6 +138,7 @@ Class metrics: outputs/figures/class_metrics.png
 Optional XAI: Grad-CAM and SHAP figures produced by extra notebook cells (outputs/xai/...)
 
 🛠️ Troubleshooting
+
 Colab link error "malformed GitHub path": Ensure the link uses:
 
 
